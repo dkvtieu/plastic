@@ -33,7 +33,8 @@ public class DialogueManager : MonoBehaviour {
 			EndDialog ();
 			return;
 		}
-		dialogueText.text = sentences.Dequeue ();
+		string currentSentence = sentences.Dequeue ();
+		StartCoroutine(DisplayStaggeredSentenceText (currentSentence, 0.5f));
 	}
 
 
@@ -42,5 +43,12 @@ public class DialogueManager : MonoBehaviour {
 		return;
 	}
 
-//	IEnumerator
+	// staggers display text to mimic 'typing' effect with defined intervals between chars
+	IEnumerator DisplayStaggeredSentenceText(string sentence, float intervalSpeed) {
+		dialogueText.text += '\n';
+		foreach (char c in sentence) {
+			dialogueText.text += c;
+			yield return null;
+		}
+	}
 }
