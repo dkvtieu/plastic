@@ -8,6 +8,9 @@ public class DialogueManager : MonoBehaviour {
 	public Text dialogueText;
 	public Text nameText;
 
+	private string currentSentence;
+	private IEnumerator currentSentenceCoroutine;
+	private bool currentSentenceCoroutineRunning;
 	private Queue<string> sentences;
 
 	// Use this for initialization
@@ -17,9 +20,9 @@ public class DialogueManager : MonoBehaviour {
 		sentences = new Queue<string>();
 	}
 
-	public void DisplayDialogue(Dialogue dialogue) {
-		// TODO method needs to show full sentence once before skipping to next 
-		sentences.Clear();
+	// method to trigger beginning of dialogue
+	public void StartDialogue(Dialogue dialogue) {
+		ClearDialogue ();
 
 		foreach(string sentence in dialogue.sentences) {
 			sentences.Enqueue(sentence);
@@ -28,27 +31,51 @@ public class DialogueManager : MonoBehaviour {
 		DisplayNextSentence();
 	}
 
+	// method to continue the current dialogue's sentences
 	public void DisplayNextSentence() {
-		if (sentences.Count == 0) {
-			EndDialog ();
+		// if DisplayStaggeredSentenceText is not finished and DisplayNextSentence is triggered,
+		// display full text before next 'continue' trigger
+		if (currentSentenceCoroutineRunning) {
+			StopCoroutine (currentSentenceCoroutine);
+			currentSentenceCoroutineRunning = false;
+			dialogueText.text = currentSentence;
 			return;
 		}
-		string currentSentence = sentences.Dequeue ();
-		StartCoroutine(DisplayStaggeredSentenceText (currentSentence, 0.5f));
+
+		if (sentences.Count == 0) {
+			ClearDialogue ();
+			return;
+		}
+
+
+		currentSentence = sentences.Dequeue ();
+		currentSentenceCoroutine = DisplayStaggeredSentenceText (currentSentence, 0.1f);
+		StartCoroutine(currentSentenceCoroutine);
 	}
 
-
-	public void EndDialog() {
+	// method to clear dialogue (either manually or reaching end of sentence queue in DisplayNextSentence)
+	public void ClearDialogue() {
 		Debug.Log ("Ended Dialogue");
+		sentences.Clear ();
+		dialogueText.text = null;
+		nameText.text = null;
 		return;
 	}
 
 	// staggers display text to mimic 'typing' effect with defined intervals between chars
-	IEnumerator DisplayStaggeredSentenceText(string sentence, float intervalSpeed) {
-		dialogueText.text += '\n';
+	IEnumerator DisplayStaggeredSentenceText(string sentence, float intervalSpeed = -1f) {
+		dialogueText.text = "";
+		currentSentenceCoroutineRunning = true;
 		foreach (char c in sentence) {
 			dialogueText.text += c;
-			yield return null;
+
+			// little hack so that if interval speed is not provided intervalSpeed is per frame
+			if (intervalSpeed == -1f) {
+				yield return null;
+			} else {
+				yield return new WaitForSeconds (intervalSpeed);
+			}
 		}
+		currentSentenceCoroutineRunning = false;
 	}
 }
